@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Post Analytics</title>
+<meta name="description" content="Views, likes and comments for tracked TikTok, Instagram and Facebook posts.">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --surface: #fcfcfb;
+  --border: #e4e3df;
+  --grid: #ecebe7;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --muted: #7a7974;
+  --accent: #2a78d6;
+  --tiktok: #2a78d6;
+  --instagram: #eb6834;
+  --facebook: #1baf7a;
+  --ok: #008300;
+  --warn: #b26b00;
+  --bad: #c62828;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111110; --surface: #1a1a19; --border: #2c2c2a; --grid: #262624;
+    --text: #f0efec; --text-2: #c3c2b7; --muted: #8f8e86; --accent: #3987e5;
+    --tiktok: #3987e5; --instagram: #d95926; --facebook: #199e70;
+    --ok: #4caf50; --warn: #e0a030; --bad: #e66767;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111110; --surface: #1a1a19; --border: #2c2c2a; --grid: #262624;
+  --text: #f0efec; --text-2: #c3c2b7; --muted: #8f8e86; --accent: #3987e5;
+  --tiktok: #3987e5; --instagram: #d95926; --facebook: #199e70;
+  --ok: #4caf50; --warn: #e0a030; --bad: #e66767;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 18px; }
+h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 12px; color: var(--text-2); font-weight: 600; }
+.updated { color: var(--muted); font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat .label { color: var(--text-2); font-size: 13px; }
+.stat .value { font-size: 30px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat.primary .value { font-size: 36px; }
+.stat .sub { color: var(--muted); font-size: 12px; }
+.posts { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.post-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.post-name { font-weight: 650; text-transform: capitalize; }
+.post-head a { margin-left: auto; color: var(--accent); font-size: 13px; text-decoration: none; }
+.post-title { color: var(--muted); font-size: 12px; margin: -4px 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 12px; }
+.metric .k { color: var(--text-2); font-size: 12px; }
+.metric .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.metric .v.na { color: var(--muted); font-weight: 400; font-size: 16px; }
+.metric.total { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 8px; }
+.foot { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 10px; color: var(--muted); font-size: 12px; align-items: center; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.badge.ok { color: var(--ok); } .badge.partial { color: var(--warn); } .badge.error { color: var(--bad); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: var(--text-2); font: inherit; font-size: 13px; padding: 6px 10px; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.chart-wrap { position: relative; height: 320px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 13px; color: var(--text-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.empty { color: var(--muted); padding: 40px 0; text-align: center; }
+details { margin-top: 12px; }
+summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+.table-scroll { overflow-x: auto; margin-top: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-2); font-weight: 600; }
+.err { color: var(--bad); font-size: 13px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Post Analytics</h1>
+    <div class="updated" id="updated">Loading…</div>
+  </header>
+  <div class="err" id="err" hidden></div>
+
+  <section class="hero" aria-label="Totals across all posts">
+    <div class="card stat primary"><div class="label">Total interactions</div><div class="value" id="t-interactions">–</div><div class="sub">likes + comments + shares, all posts</div></div>
+    <div class="card stat"><div class="label">Total views</div><div class="value" id="t-views">–</div></div>
+    <div class="card stat"><div class="label">Total likes</div><div class="value" id="t-likes">–</div></div>
+    <div class="card stat"><div class="label">Total comments</div><div class="value" id="t-comments">–</div></div>
+  </section>
+
+  <section class="posts" id="posts" aria-label="Per-post totals"></section>
+
+  <section class="card" aria-label="Growth over time">
+    <h2>Growth over time</h2>
+    <div class="controls">
+      <div class="seg" id="metric-seg" role="group" aria-label="Metric">
+        <button data-m="views" aria-pressed="true">Views</button>
+        <button data-m="likes">Likes</button>
+        <button data-m="comments">Comments</button>
+        <button data-m="interactions">Interactions</button>
+      </div>
+      <div class="seg" id="range-seg" role="group" aria-label="Time range">
+        <button data-d="1">24h</button>
+        <button data-d="7" aria-pressed="true">7d</button>
+        <button data-d="30">30d</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="chart" aria-label="Line chart of the selected metric per platform"></canvas></div>
+    <div class="empty" id="chart-empty" hidden>No snapshots yet in this range.</div>
+    <div class="legend" id="legend"></div>
+    <details>
+      <summary>Show as table</summary>
+      <div class="table-scroll"><table id="table"></table></div>
+    </details>
+  </section>
+</main>
+
+<script src="/static/chart.umd.min.js"></script>
+<script>
+const PLATFORMS = ["tiktok", "instagram", "facebook"];
+const NAMES = { tiktok: "TikTok", instagram: "Instagram", facebook: "Facebook" };
+const nf = new Intl.NumberFormat();
+const fmt = v => v == null ? "—" : nf.format(v);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const ago = iso => {
+  if (!iso) return "never";
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 90) return "just now";
+  if (s < 5400) return Math.round(s / 60) + " min ago";
+  if (s < 129600) return Math.round(s / 3600) + " h ago";
+  return Math.round(s / 86400) + " d ago";
+};
+const fullTime = iso => new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+const shortTime = (iso, days) => new Date(iso).toLocaleString([], days <= 1
+  ? { hour: "numeric", minute: "2-digit" }
+  : { month: "short", day: "numeric", hour: "numeric" });
+
+let state = { metric: "views", days: 7, data: null };
+let chart;
+
+function renderTotals(d) {
+  for (const m of ["interactions", "views", "likes", "comments"])
+    document.getElementById("t-" + m).textContent = fmt(d.totals[m]);
+  document.getElementById("updated").textContent = d.last_updated
+    ? `Last updated ${ago(d.last_updated)} · ${fullTime(d.last_updated)}` : "No data yet";
+  document.getElementById("updated").title = d.last_updated || "";
+  const e = document.getElementById("err");
+  e.hidden = !d.error; e.textContent = d.error ? "Showing cached data: " + d.error : "";
+}
+
+function renderPosts(d) {
+  const el = document.getElementById("posts");
+  el.innerHTML = "";
+  for (const p of d.posts) {
+    const icon = { ok: "✓", partial: "!", error: "✕" }[p.status] || "?";
+    const cell = (k, m) => `<div class="metric"><div class="k">${k}</div><div class="v ${p[m] == null ? "na" : ""}">${p[m] == null ? "n/a" : fmt(p[m])}</div></div>`;
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="post-head">
+        <span class="swatch" style="background:var(--${p.platform})"></span>
+        <span class="post-name">${NAMES[p.platform] || p.platform}</span>
+        <a href="${p.url}" target="_blank" rel="noopener">Open post ↗</a>
+      </div>
+      ${p.title ? `<div class="post-title"></div>` : ""}
+      <div class="metrics">
+        ${cell("Views", "views")}${cell("Likes", "likes")}
+        ${cell("Comments", "comments")}${cell("Shares", "shares")}
+        <div class="metric total"><div class="k">Interactions (likes + comments + shares)</div><div class="v">${fmt(p.interactions)}</div></div>
+      </div>
+      <div class="foot">
+        <span class="badge ${p.status}">${icon} ${p.status}</span>
+        <span>via ${p.method}</span>
+        <span title="${p.t}">${ago(p.t)}</span>
+      </div>`;
+    if (p.title) card.querySelector(".post-title").textContent = p.title;
+    el.appendChild(card);
+  }
+  if (!d.posts.length) el.innerHTML = `<div class="card empty">No snapshots yet — the collector runs every 30 minutes.</div>`;
+}
+
+function buildSeries() {
+  const cutoff = Date.now() - state.days * 86400e3;
+  const rows = state.data.series.filter(r => new Date(r.run || r.t) >= cutoff);
+  const runs = [...new Set(rows.map(r => r.run || r.t))].sort();
+  const byKey = new Map(rows.map(r => [(r.run || r.t) + "|" + r.platform, r]));
+  const present = PLATFORMS.filter(p => rows.some(r => r.platform === p));
+  return { runs, present, val: (run, p) => byKey.get(run + "|" + p)?.[state.metric] ?? null };
+}
+
+function renderChart() {
+  const { runs, present, val } = buildSeries();
+  const empty = !runs.length;
+  document.getElementById("chart-empty").hidden = !empty;
+  document.querySelector(".chart-wrap").hidden = empty;
+  const grid = css("--grid"), muted = css("--muted"), surface = css("--surface");
+  const datasets = present.map(p => ({
+    label: NAMES[p],
+    data: runs.map(r => val(r, p)),
+    borderColor: css("--" + p),
+    backgroundColor: css("--" + p),
+    borderWidth: 2,
+    pointRadius: runs.length > 60 ? 0 : 2,
+    pointHoverRadius: 5,
+    pointHoverBorderColor: surface,
+    pointHoverBorderWidth: 2,
+    spanGaps: true,
+    tension: 0.2,
+  }));
+  const labels = runs.map(r => shortTime(r, state.days));
+  if (!chart) {
+    chart = new Chart(document.getElementById("chart"), {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        maintainAspectRatio: false, animation: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: items => fullTime(runs[items[0].dataIndex]),
+              label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}`,
+            },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: muted, maxTicksLimit: innerWidth < 600 ? 3 : 6, maxRotation: 0, autoSkipPadding: 16 } },
+          y: { grid: { color: grid }, border: { display: false }, ticks: { color: muted, maxTicksLimit: 5,
+               callback: v => Intl.NumberFormat([], { notation: "compact" }).format(v) } },
+        },
+      },
+    });
+  } else {
+    chart.data.labels = labels; chart.data.datasets = datasets;
+    chart.options.scales.x.ticks.color = muted; chart.options.scales.y.ticks.color = muted;
+    chart.options.scales.y.grid.color = grid;
+    chart.options.plugins.tooltip.callbacks.title = items => fullTime(runs[items[0].dataIndex]);
+    chart.update();
+  }
+  document.getElementById("legend").innerHTML = present.map(p => {
+    const last = [...runs].reverse().map(r => val(r, p)).find(v => v != null);
+    return `<span><span class="swatch" style="background:var(--${p})"></span>${NAMES[p]} · ${fmt(last)}</span>`;
+  }).join("");
+  const t = document.getElementById("table");
+  t.innerHTML = `<thead><tr><th>Time</th>${present.map(p => `<th>${NAMES[p]}</th>`).join("")}</tr></thead>` +
+    `<tbody>${[...runs].reverse().map(r => `<tr><td>${fullTime(r)}</td>${present.map(p => `<td>${fmt(val(r, p))}</td>`).join("")}</tr>`).join("")}</tbody>`;
+}
+
+function wireSeg(id, key, attr, parse) {
+  document.getElementById(id).addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    for (const x of e.currentTarget.querySelectorAll("button")) x.setAttribute("aria-pressed", x === b);
+    state[key] = parse(b.dataset[attr]);
+    if (state.data) renderChart();
+  });
+}
+wireSeg("metric-seg", "metric", "m", v => v);
+wireSeg("range-seg", "days", "d", Number);
+
+async function load() {
+  try {
+    const r = await fetch("/api/data");
+    state.data = await r.json();
+    renderTotals(state.data); renderPosts(state.data);
+    try { renderChart(); } catch (e) { console.error(e); document.getElementById("chart-empty").hidden = false; document.getElementById("chart-empty").textContent = "Chart unavailable."; }
+  } catch (e) {
+    document.getElementById("updated").textContent = "Couldn't load data";
+  }
+}
+load();
+setInterval(load, 5 * 60 * 1000);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => state.data && renderChart());
+</script>
+</body>
+</html>

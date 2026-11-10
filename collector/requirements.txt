@@ -1,0 +1,4 @@
+yt-dlp==2026.10.26
+playwright==1.55.0
+google-cloud-firestore==2.19.0
+requests==2.32.3
