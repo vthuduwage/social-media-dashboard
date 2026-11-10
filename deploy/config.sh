@@ -18,6 +18,11 @@ fi
 : "${SCHEDULE:=*/30 * * * *}"
 : "${TIME_ZONE:=Etc/UTC}"
 
+# Regional (us-central1) bucket for Cloud Build source/logs, so it sits inside the
+# Cloud Storage free tier instead of the default multi-region bucket.
+BUILD_BUCKET="gs://${PROJECT_ID}-build-src"
+BUILD_FLAGS=(--gcs-source-staging-dir "${BUILD_BUCKET}/source" --gcs-log-dir "${BUILD_BUCKET}/logs")
+
 COLLECTOR_SA="collector-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 DASHBOARD_SA="dashboard-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 SCHEDULER_SA="scheduler-sa@${PROJECT_ID}.iam.gserviceaccount.com"

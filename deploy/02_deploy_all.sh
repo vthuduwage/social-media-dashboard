@@ -4,7 +4,7 @@
 source "$(dirname "$0")/config.sh"
 
 echo "==> Building dashboard image with Cloud Build"
-gcloud builds submit "${ROOT_DIR}/dashboard" --tag "${DASHBOARD_IMAGE}"
+gcloud builds submit "${ROOT_DIR}/dashboard" "${BUILD_FLAGS[@]}" --tag "${DASHBOARD_IMAGE}"
 
 echo "==> Deploying Cloud Run service ${DASHBOARD_SERVICE} (public, read-only)"
 gcloud run deploy "${DASHBOARD_SERVICE}" --image "${DASHBOARD_IMAGE}" --region "${REGION}" \

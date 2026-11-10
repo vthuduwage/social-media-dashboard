@@ -57,7 +57,9 @@ project needs a billing account attached: Cloud Run, Cloud Build and Cloud
 Scheduler all require one, even when usage stays inside the free tier.
 
 ```bash
-export PROJECT_ID=your-project-id
+export PROJECT_ID=post-analytics-$RANDOM          # a NEW, dedicated project
+export BILLING_ACCOUNT=$(gcloud billing accounts list --format='value(name)' --limit 1)
+./deploy/00a_create_project.sh  # create project, link billing, $1 budget alert
 ./deploy/00_setup.sh            # APIs, Artifact Registry, Firestore, service accounts
 ./deploy/01_test_collector.sh   # GATE: build + run the collector ONCE, print per-platform results
 ```
@@ -141,15 +143,16 @@ Pricing uses `us-central1`. The free-tier figures are per billing account per mo
 
 | Service | Usage | Free tier | Expected cost |
 |---|---|---|---|
-| Cloud Run Jobs (collector, 1 vCPU / 2 GiB) | 48 runs/day ≈ 1,440/mo. At ~60–120 s per run: 86k–173k vCPU-s, 173k–346k GiB-s | 180k vCPU-s, 360k GiB-s (shared with the dashboard) | **$0** if runs average under ~2 min. If Playwright runs for every post on every run (~3 min), about **$1–2/mo** |
+| Cloud Run Jobs (collector, 1 vCPU / 1 GiB) | 48 runs/day ≈ 1,440/mo. At ~60–120 s per run: 86k–173k vCPU-s, 86k–173k GiB-s | 180k vCPU-s, 360k GiB-s (shared with the dashboard) | **$0** if runs average under ~2 min. If Playwright runs for every post on every run (~3 min), about **$1–2/mo** |
 | Cloud Run service (dashboard, 256 MiB, scales to zero) | Light traffic | 2M requests, plus the compute above | **$0** |
 | Firestore | ~144 writes/day. Reads are incremental and cached (a cold start reads ≤ 30 days ≈ 4.3k docs) | 20k writes, 50k reads per day, 1 GiB storage | **$0** |
 | Cloud Scheduler | 1 job | 3 jobs | **$0** |
 | Cloud Build | A few builds, ~5–10 min each (the collector installs Chromium) | Free build-minutes per month | **$0** |
-| Artifact Registry | Collector image ~0.6–0.9 GB + dashboard ~0.1 GB (the cleanup policy keeps the latest 2 of each) | 0.5 GB | **~$0.05–0.15/mo** |
+| Artifact Registry | Collector image (Chromium headless shell only) + dashboard; the cleanup policy keeps only the latest version of each | 0.5 GB | **$0** if total stays under 0.5 GB, otherwise ~$0.10/GB/mo over |
+| Cloud Storage | Build source/logs in a us-central1 bucket, auto-deleted after 1 day | 5 GB in us-central1 | **$0** |
 | Cloud Logging | A few MB/month | 50 GiB | **$0** |
 
-**Total: about $0–0.20/month in the normal case, and at most about $2/month** if
+**Total: $0/month expected, and at most about $2/month in the worst case** if
 Playwright has to run for every post on every run. The largest cost driver is
 collector runtime. If one platform is permanently blocked, removing it from
 `posts.json`, or changing `SCHEDULE` to hourly, halves that cost.

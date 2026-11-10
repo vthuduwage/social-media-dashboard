@@ -4,11 +4,11 @@
 source "$(dirname "$0")/config.sh"
 
 echo "==> Building collector image with Cloud Build (no local Docker)"
-gcloud builds submit "${ROOT_DIR}/collector" --tag "${COLLECTOR_IMAGE}" --timeout 1800s
+gcloud builds submit "${ROOT_DIR}/collector" "${BUILD_FLAGS[@]}" --tag "${COLLECTOR_IMAGE}" --timeout 1800s
 
 echo "==> Creating/updating Cloud Run Job ${COLLECTOR_JOB}"
 JOB_FLAGS=(--image "${COLLECTOR_IMAGE}" --region "${REGION}"
-  --service-account "${COLLECTOR_SA}" --cpu 1 --memory 2Gi
+  --service-account "${COLLECTOR_SA}" --cpu 1 --memory 1Gi
   --task-timeout 900s --max-retries 0 --tasks 1)
 if gcloud run jobs describe "${COLLECTOR_JOB}" --region "${REGION}" >/dev/null 2>&1; then
   gcloud run jobs update "${COLLECTOR_JOB}" "${JOB_FLAGS[@]}"
